@@ -1,4 +1,5 @@
-# RNA Sequence Stacked Classifier(RNAPhase_ML)
+# RNAPhase-ML
+### Decoding RNA Sequence Signatures of Biomolecular Phase Separation
 
 ## Associated manuscript
 **Sequence architecture of RNA reveals key molecular signatures driving RNA phase separation**
