@@ -1,14 +1,25 @@
-# RNA Sequence Stacked Classifier
+# RNA Sequence Stacked Classifier(RNAPhase_ML)
 
-A reproducible pipeline that trains 15 diverse machine-learning classifiers
-on 807-dimensional RNA sequence features (167 handcrafted tabular features
-+ 640-dim RNA-FM mean embedding) and then stacks them with a small
-seed-bagged neural network to produce a final binary LLPS prediction.
+## Associated manuscript
+**Sequence architecture of RNA reveals key molecular signatures driving RNA phase separation**
 
-**Headline result (test n = 183, threshold 0.5):**
-meta-NN achieves AUC-ROC = **0.935**, F1 = **0.880**, MCC = **0.782** —
-better than the strongest individual base learner on all primary metrics.
+This repository contains the reproducible analysis pipeline associated with the manuscript above.
 
+A reproducible machine-learning pipeline for identifying sequence signatures
+associated with LLPS-associated RNAs. The framework integrates 167 handcrafted
+RNA sequence descriptors with 640-dimensional mean-pooled RNA-FM embeddings,
+yielding an 807-dimensional representation for each RNA.
+
+Fifteen heterogeneous base classifiers are combined through cross-validated
+probability stacking with a neural-network meta-learner to distinguish
+experimentally supported LLPS-associated RNAs from LLPS-unannotated background
+RNAs.
+
+**Independent test-set performance (n = 183; threshold = 0.5):**
+the final stacked Meta-NN achieves accuracy = **0.891**, F1 = **0.880**,
+AUC-ROC = **0.935**, AUC-PR = **0.944**, and MCC = **0.782**.
+The Meta-NN provides the strongest overall performance among the evaluated
+models, ranking first on six of seven reported metrics.
 ## Repository layout
 
 ```
@@ -57,8 +68,10 @@ python stack_pipeline.py
 
 ## Predicting on new sequences
 
-Once `stack_pipeline.py` has been run (models are saved), you can predict
-on any new feature CSV with the same 807-column format:
+Once `stack_pipeline.py` has been run and the fitted models have been saved,
+predictions can be generated for new RNAs represented using the same
+807-feature format (167 handcrafted descriptors + 640 mean-pooled RNA-FM
+embedding dimensions):
 
 ```bash
 python predict.py <your_features.csv> [output.csv]
@@ -69,20 +82,25 @@ If no output path is given, predictions are saved to
 
 ## Pipeline at a glance
 
-1. **Pre-process** — 732 training sequences and 183 test sequences; features
-   split into 167 handcrafted tabular descriptors and 640-dim RNA-FM embeddings.
-2. **Base layer** (15 classifiers across linear, kernel, neighbours,
-   Bayesian, tree-ensemble, gradient-boosting and shallow-NN families)
-   produces leakage-free out-of-fold (OOF) probabilities on the train set
-   via stratified 5-fold CV, plus a single full-fit prediction on the test set.
-3. **Meta NN** — tabular features are standardised and projected onto
-   **50 principal components**; RNA-FM features onto **64 principal
-   components** (separate PCA per block). The two PCA outputs (114 dims)
-   are concatenated with the 15 base-model probabilities to form a
-   **129-dim** input, which is fed to a small MLP `(64, 16)` with ReLU
-   activations, L2 regularisation and early stopping, seed-bagged across
-   25 random seeds.
+1. **Input representation** — The benchmark contains 732 training RNAs and
+   183 independent test RNAs. Each RNA is represented by 167 handcrafted
+   sequence descriptors and 640 mean-pooled RNA-FM embedding dimensions.
 
+2. **Base layer** — Fifteen heterogeneous classifiers generate stratified
+   five-fold out-of-fold (OOF) probability predictions for the training set.
+   The base models are subsequently refitted on the complete training set to
+   generate predictions for the independent test set.
+
+3. **Meta-learner** — The handcrafted feature block is standardized and
+   reduced to 50 principal components, while the RNA-FM block is separately
+   standardized and reduced to 64 principal components. These 114 components
+   are concatenated with the 15 base-model probabilities to produce a
+   129-dimensional meta-model input.
+
+4. **Final prediction** — A two-hidden-layer MLP (64 and 16 neurons), trained
+   with Adam optimization, L2 regularization and early stopping, integrates
+   these complementary information sources. Predictions are aggregated across
+   the seed-bagged Meta-NN ensemble.
 ## Reproducibility notes
 
 - Global seed `RANDOM_STATE = 42` controls all stochastic components.
